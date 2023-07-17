@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -13,6 +14,7 @@ import (
 var filePath1 = "../database/file1.ndjson"
 var filePath2 = "../database/file2.ndjson"
 var filePath3 = "../database/file3.ndjson"
+var outputFilePath = "../database/output-gmail.ndjson"
 
 func main() {
 	// init schedule time
@@ -64,8 +66,16 @@ func readNDJSON(filePah string, dataCh chan<- map[string]interface{}) {
 	}
 	defer file.Close()
 
-	// create a scanner to read the file
+	// create file NDJSON of the filtered emails
+	outputFile, err := os.Create(outputFilePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer outputFile.Close()
+
+	// create a scanner to read and write the file
 	scanner := bufio.NewScanner(file)
+	writer := bufio.NewWriter(outputFile)
 
 	// read the NDJSON file line by line
 	for scanner.Scan() {
@@ -80,6 +90,20 @@ func readNDJSON(filePah string, dataCh chan<- map[string]interface{}) {
 			continue
 		}
 
+		// check if the email is from gmail
+		if email, ok := obj["email"].(string); ok {
+			if strings.HasSuffix(email, "@gmail.com") {
+				// write the line to the output file
+				outputLine, err := json.Marshal(obj)
+				if err != nil {
+					log.Println("error to parse json", err)
+					continue
+				}
+				writer.Write(outputLine)
+				writer.WriteString("\n")
+			}
+		}
+
 		// send the object to the channel
 		dataCh <- obj
 	}
@@ -88,4 +112,10 @@ func readNDJSON(filePah string, dataCh chan<- map[string]interface{}) {
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
+
+	// flush the writer
+	writer.Flush()
+
+	// print out the message to finish the file
+	fmt.Println("the NDJSON file was writen on the output file")
 }
