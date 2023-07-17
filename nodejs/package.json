@@ -1,0 +1,16 @@
+{
+  "name": "nodejs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "seed": "node seed.js"
+  },
+  "keywords": [],
+  "author": "JuniorPaula",
+  "license": "ISC",
+  "dependencies": {
+    "@faker-js/faker": "7.6"
+  }
+}
