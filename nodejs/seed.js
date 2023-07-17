@@ -18,7 +18,7 @@ const generateUser = () => {
 [file1, file2, file3].forEach((file, index) => {
     const currentFile = `file${index + 1}`
     console.time(currentFile)
-    for (let i = 0; i < 1e4; i++) {
+    for (let i = 0; i < 1e6; i++) {
         const user = generateUser()
         file.write(JSON.stringify(user) + "\n")
     }
