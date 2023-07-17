@@ -29,12 +29,18 @@ func main() {
 	// especify the file path
 	filePaths := []string{filePath1, filePath2, filePath3}
 
+	// create a semaphore to limit the number of goroutines
+	sem := make(chan struct{}, 3)
+
 	// init a goroutine for each file
 	for _, filePath := range filePaths {
 		wg.Add(1)
 		go func(filePath string) {
+
 			// read the file
+			sem <- struct{}{}
 			readNDJSON(filePath, dataCh)
+			<-sem
 			wg.Done()
 		}(filePath)
 	}
@@ -46,11 +52,23 @@ func main() {
 	}()
 
 	// process the received data
+	var filteredData []map[string]interface{}
 	for data := range dataCh {
-		// process the data
-		for key, value := range data {
-			fmt.Println(key, value)
+		// check if the email is from gmail
+		if email, ok := data["email"].(string); ok {
+			if !strings.HasSuffix(email, "@gmail.com") {
+				continue
+			}
 		}
+
+		// append the data to the filtered data
+		filteredData = append(filteredData, data)
+	}
+
+	// save the filtered data to a file
+	err := saveFilteredData(filteredData)
+	if err != nil {
+		log.Fatal("error to save data", err)
 	}
 
 	// print the time taken to read the file
@@ -58,9 +76,9 @@ func main() {
 }
 
 // readNDJSON reads the NDJSON file and returns the it for the channel
-func readNDJSON(filePah string, dataCh chan<- map[string]interface{}) {
+func readNDJSON(filePath string, dataCh chan<- map[string]interface{}) {
 	// open the NDJSON file
-	file, err := os.Open(filePah)
+	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -73,12 +91,15 @@ func readNDJSON(filePah string, dataCh chan<- map[string]interface{}) {
 	}
 	defer outputFile.Close()
 
-	// create a scanner to read and write the file
+	// create a scanner to read the file
 	scanner := bufio.NewScanner(file)
-	writer := bufio.NewWriter(outputFile)
+
+	var counter int
 
 	// read the NDJSON file line by line
 	for scanner.Scan() {
+		counter++
+		fmt.Println(filePath, " found ", counter, " so far")
 		// get the line
 		line := scanner.Bytes()
 
@@ -90,20 +111,6 @@ func readNDJSON(filePah string, dataCh chan<- map[string]interface{}) {
 			continue
 		}
 
-		// check if the email is from gmail
-		if email, ok := obj["email"].(string); ok {
-			if strings.HasSuffix(email, "@gmail.com") {
-				// write the line to the output file
-				outputLine, err := json.Marshal(obj)
-				if err != nil {
-					log.Println("error to parse json", err)
-					continue
-				}
-				writer.Write(outputLine)
-				writer.WriteString("\n")
-			}
-		}
-
 		// send the object to the channel
 		dataCh <- obj
 	}
@@ -112,10 +119,38 @@ func readNDJSON(filePah string, dataCh chan<- map[string]interface{}) {
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
+}
 
+func saveFilteredData(filteredData []map[string]interface{}) error {
+	// create a file to save the filtered data
+	outputFile, err := os.Create(outputFilePath)
+	if err != nil {
+		return err
+	}
+	defer outputFile.Close()
+
+	// create the writer
+	writer := bufio.NewWriter(outputFile)
+
+	// write the data to the file
+	for _, data := range filteredData {
+		// parse the data to JSON
+		line, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
+
+		_, err = writer.Write(line)
+		if err != nil {
+			return err
+		}
+		writer.WriteString("\n")
+	}
 	// flush the writer
-	writer.Flush()
+	err = writer.Flush()
+	if err != nil {
+		return err
+	}
 
-	// print out the message to finish the file
-	fmt.Println("the NDJSON file was writen on the output file")
+	return nil
 }
