@@ -11,6 +11,7 @@
   "author": "JuniorPaula",
   "license": "ISC",
   "dependencies": {
-    "@faker-js/faker": "7.6"
+    "@faker-js/faker": "7.6",
+    "split": "^1.0.1"
   }
 }
