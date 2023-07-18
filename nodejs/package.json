@@ -5,6 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "start": "rm -f ../database/output-gmail.ndjson && node src/index.js && sh check-result.sh",
     "seed": "node seed.js"
   },
   "keywords": [],
