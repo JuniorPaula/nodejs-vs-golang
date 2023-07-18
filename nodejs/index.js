@@ -47,7 +47,7 @@ function childProcessAsStream(cp, file) {
     return stream
 }
 
-const files = (await readdir("./database")).filter(item => !item.includes("output"))
+const files = (await readdir("../database")).filter(item => !item.includes("output"))
 
 const counters = {}
 const childProcesses = []

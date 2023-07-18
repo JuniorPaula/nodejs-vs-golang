@@ -21,6 +21,8 @@ process.once("message", async (message) => {
                         message: item
                     })
                 }
+            }
+        )
     } catch (error) {
         process.send({
             status: "error",
